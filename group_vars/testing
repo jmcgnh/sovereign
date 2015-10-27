@@ -18,6 +18,8 @@ friendly_networks:
 admin_email: "{{ main_user_name }}@{{ domain }}"
 
 # mailserver
+mail_db_password: testPassword
+mail_db_opendmarc_password: testPassword
 mail_virtual_domains:
   - name: "{{ domain }}"
     pk_id: 1
