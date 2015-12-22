@@ -16,6 +16,11 @@ Vagrant.configure("2") do |config|
     # ansible.tags = ["blog"]
     # ansible.skip_tags = ["openvpn"]
     # ansible.verbose = "vvvv"
+
+    # this lets you pass in tags on the vagrant command line
+    # e.g. "env ANSIBLE_ARGS='--tags=znc,blog' vagrant provision"
+    ansible.raw_arguments = ENV['ANSIBLE_ARGS']
+
   end
 
   config.vm.provider :virtualbox do |v|
