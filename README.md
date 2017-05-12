@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/sovereign/sovereign.svg?branch=master)](https://travis-ci.org/sovereign/sovereign)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/460/badge)](https://bestpractices.coreinfrastructure.org/projects/460)
 
 Introduction
 ============
@@ -19,7 +20,7 @@ What do you get if you point Sovereign at a server? All kinds of good stuff!
 -   [IMAP](https://en.wikipedia.org/wiki/Internet_Message_Access_Protocol) over SSL via [Dovecot](http://dovecot.org/), complete with full text search provided by [Solr](https://lucene.apache.org/solr/).
 -   [POP3](https://en.wikipedia.org/wiki/Post_Office_Protocol) over SSL, also via Dovecot
 -   [SMTP](https://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol) over SSL via Postfix, including a nice set of [DNSBLs](https://en.wikipedia.org/wiki/DNSBL) to discard spam before it ever hits your filters.
--   Webmail via [Roundcube](http://www.roundcube.net/). **NOTE:** currently unavailable.
+-   Webmail via [Roundcube](http://www.roundcube.net/).
 -   Mobile push notifications via [Z-Push](http://z-push.sourceforge.net/soswp/index.php?pages_id=1&t=home).
 -   Email client [automatic configuration](https://developer.mozilla.org/en-US/docs/Mozilla/Thunderbird/Autoconfiguration).
 -   Jabber/[XMPP](http://xmpp.org/) instant messaging via [Prosody](http://prosody.im/).
@@ -62,6 +63,10 @@ You do not need to acquire an SSL certificate.  The SSL certificates you need wi
 Installation
 ------------
 
+## On the remote server
+
+The following steps are done on the remote server by `ssh`ing into it and running these commands.
+
 ### 1. Install required packages
 
     apt-get install sudo
@@ -95,21 +100,27 @@ Authorize your ssh key if you want passwordless ssh login (optional):
     chown deploy:deploy /home/deploy -R
     echo 'deploy ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/deploy
 
-Your new account will be automatically set up for passwordless `sudo`.
+Your new account will be automatically set up for passwordless `sudo`. Or you can just add your `deploy` user to the sudo group.
+
+    adduser deploy sudo
+
+## On your local machine
+
+Ansible (the tool setting up your server) runs locally on your computer and sends commands to the remote server. Download this repository somewhere on your machine, either through `Clone or Download > Download ZIP` above, `wget`, or `git` as below
+    
+    git clone https://github.com/sovereign/sovereign.git
 
 ### 4. Configure your installation
 
-Modify the settings in `group_vars/sovereign` to your liking. If you want to see how they’re used in context, just search for the corresponding string.
+Modify the settings in the `group_vars/sovereign` folder to your liking. If you want to see how they’re used in context, just search for the corresponding string.
 All of the variables in `group_vars/sovereign` must be set for sovereign to function.
 
 Setting `password_hash` for your mail users is a bit tricky. You can generate one using [doveadm-pw](http://wiki2.dovecot.org/Tools/Doveadm/Pw).
 
-    # doveadm pw -s SHA512-CRYPT
-    Enter new password: foo
-    Retype new password: foo
-    {SHA512-CRYPT}$6$drlIN9fx7Aj7/iLu$XvjeuQh5tlzNpNfs4NwxN7.HGRLglTKism0hxs2C1OvD02d3x8OBN9KQTueTr53nTJwVShtCYiW80SGXAjSyM0
+    # doveadm pw -p'YOUR_PASSWORD' -s SHA512-CRYPT | sed -e 's/{.*}//'
+    $6$drlIN9fx7Aj7/iLu$XvjeuQh5tlzNpNfs4NwxN7.HGRLglTKism0hxs2C1OvD02d3x8OBN9KQTueTr53nTJwVShtCYiW80SGXAjSyM0
 
-Remove `{SHA512-CRYPT}` and insert the rest as the `password_hash` value.
+`sed` is used here to truncate the hash type from the beginning of the `doveadm pw` output.
 
 Alternatively, if you don’t already have `doveadm` installed, Python 3.3 or higher on Linux will generate the appropriate string for you (assuming your password is `password`):
 
@@ -171,7 +182,9 @@ First, make sure you’ve [got Ansible 1.9.3+ installed](http://docs.ansible.com
 
 To run the whole dang thing:
 
-    ansible-playbook -i ./hosts site.yml
+    ansible-playbook -i ./hosts --ask-sudo-pass site.yml
+    
+If you chose to make a passwordless sudo deploy user, you can omit the `--ask-sudo-pass` argument.
 
 To run just one or more piece, use tags. I try to tag all my includes for easy isolated development. For example, to focus in on your firewall setup:
 
@@ -207,7 +220,12 @@ Similarly, to access the server monitoring page, use another SSH tunnel:
 
 Again proceeding to http://localhost:2812 in your web browser.
 
-Finally, sign into ownCloud with a new administrator account to set it up. You should select PostgreSQL as the configuration backend. Use `owncloud` as the database user and the database name. For the database password use the password you set for `owncloud_db_password` in `group_vars/sovereign`.
+Finally, sign into ownCloud with a new administrator account to set it
+up. You should select PostgreSQL as the configuration backend. Use
+`owncloud` as the database user and the database name. For the
+database password ansible has created a set of random passwords for
+each service and stores them in your local folder `secret`, use the
+one in the file `owncloud_db_password`.
 
 How To Use Your New Personal Cloud
 ----------------------------------
